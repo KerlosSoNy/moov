@@ -1,3 +1,4 @@
+import FavoriteButton from "@/components/favoriteButton/favoriteButton";
 import { useTheme } from "@/hooks/useTheme";
 import type { Movie } from "@/types/movie";
 import Feather from "@expo/vector-icons/Feather";
@@ -62,6 +63,7 @@ function MovieResultItem({ movie, onPress }: MovieResultItemProps) {
                     </Text>
                 </View>
             </View>
+            <FavoriteButton movie={movie} />
         </Pressable>
     );
 }

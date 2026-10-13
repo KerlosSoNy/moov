@@ -1,14 +1,32 @@
 
-import { router, useFocusEffect } from "expo-router";
+import { useAuth } from "@/providers/auth";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { ImageBackground } from "react-native";
 
-export default function Index() {
+const SPLASH_MS = 3000;
+// The splash animation only plays on launch; later visits (after log in / log out) redirect at once
+let splashShown = false;
 
-  useFocusEffect(() => {
-    setTimeout(() => {
-      router.replace("/home")
-    }, 3000)
-  })
+export default function Index() {
+  const { user, loading, recovering } = useAuth();
+  const [ready, setReady] = useState(splashShown);
+
+  useEffect(() => {
+    if (ready) return;
+    const timer = setTimeout(() => {
+      splashShown = true;
+      setReady(true);
+    }, SPLASH_MS);
+    return () => clearTimeout(timer);
+  }, [ready]);
+
+  useEffect(() => {
+    if (!ready || loading) return;
+    if (!user) router.replace("/login");
+    else router.replace(recovering ? "/reset-password" : "/home");
+  }, [ready, loading, user, recovering]);
+
   return (
     // <LinearGradient
     //   colors={["#060614", "#FC466B"]}

@@ -1,3 +1,4 @@
+import FavoriteButton from '@/components/favoriteButton/favoriteButton';
 import { ON_IMAGE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { imgUrl } from '@/lib/image';
@@ -30,6 +31,7 @@ export default function MovieCard({ movie }: { movie: Movie }) {
                         <Text style={{ color: ON_IMAGE.rating, fontSize: 12, fontWeight: '700' }}>★ {movie.rating.toFixed(1)}</Text>
                     </View>
                 )}
+                <FavoriteButton movie={movie} variant="image" size={14} style={{ position: 'absolute', top: 6, left: 6 }} />
             </View>
             <Text numberOfLines={1} style={{ color: colors.text, fontWeight: '600', marginTop: 8 }}>{movie.title}</Text>
             <Text style={{ color: colors.textMuted, fontSize: 12 }}>{movie.year}</Text>

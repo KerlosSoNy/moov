@@ -1,3 +1,4 @@
+import FavoriteButton from '@/components/favoriteButton/favoriteButton';
 import TrailerSheet from '@/components/movie/trailerSheet';
 import { ON_IMAGE, type Colors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -45,15 +46,18 @@ export default function HeroBanner({ movie }: { movie?: Movie }) {
                 ) : (
                     <View />
                 )}
-                <Pressable
-                    onPress={openDetails}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('details')}
-                    hitSlop={8}
-                    style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-                >
-                    <Feather name="info" size={20} color={ON_IMAGE.text} />
-                </Pressable>
+                <View style={styles.actions}>
+                    <FavoriteButton movie={movie} variant="image" size={19} />
+                    <Pressable
+                        onPress={openDetails}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('details')}
+                        hitSlop={8}
+                        style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+                    >
+                        <Feather name="info" size={20} color={ON_IMAGE.text} />
+                    </Pressable>
+                </View>
             </View>
 
             <View style={styles.content}>
@@ -100,5 +104,6 @@ const createStyles = (c: Colors) => StyleSheet.create({
         justifyContent: 'center',
         backgroundColor: ON_IMAGE.scrim,
     },
+    actions: { flexDirection: 'row', gap: 10 },
     pressed: { opacity: 0.8 },
 });

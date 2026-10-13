@@ -1,8 +1,9 @@
 import PreferenceControls from "@/components/preferenceControls/preferenceControls";
-import { CURRENT_USER } from "@/constants/user";
 import { useTheme } from "@/hooks/useTheme";
 import type { TranslationKey } from "@/i18n/config";
 import { useTranslation } from "@/i18n/languageProvider";
+import { useAuth, useUser } from "@/providers/auth";
+import { avatarUrl } from "@/services/profile/profile";
 import Feather from "@expo/vector-icons/Feather";
 import {
     GlassView,
@@ -13,6 +14,7 @@ import { Image } from "expo-image";
 import { router, type Href } from "expo-router";
 import { useEffect } from "react";
 import {
+    Alert,
     BackHandler,
     Pressable,
     StyleSheet,
@@ -49,8 +51,6 @@ const ITEMS: MenuItem[] = [
     { label: "settings", icon: "settings", onPress: go("/settings") },
 ];
 
-const logout = () => router.replace("/");
-
 type MenuProps = {
     open: boolean;
     onClose: () => void;
@@ -61,6 +61,10 @@ export default function Menu({ open, onClose }: MenuProps) {
     const insets = useSafeAreaInsets();
     const { t, isRTL } = useTranslation();
     const { scheme, colors } = useTheme();
+    const user = useUser();
+    const { signOut } = useAuth();
+    // Leaving the signed-in screens is handled by the auth guard in the root layout
+    const logout = () => signOut().catch(() => Alert.alert(t("logoutFailed")));
     const fg = colors.text;
     const muted = colors.textMuted;
     const drawerWidth = Math.min(width * 0.8, 340);
@@ -148,7 +152,7 @@ export default function Menu({ open, onClose }: MenuProps) {
                                 }}
                             >
                                 <Image
-                                    source={{ uri: CURRENT_USER.avatar }}
+                                    source={{ uri: avatarUrl(user) }}
                                     style={[
                                         styles.avatar,
                                         { backgroundColor: colors.fill },
@@ -161,13 +165,13 @@ export default function Menu({ open, onClose }: MenuProps) {
                                         style={[styles.name, { color: fg }]}
                                         numberOfLines={1}
                                     >
-                                        {CURRENT_USER.name}
+                                        {user.user_metadata?.name}
                                     </Text>
                                     <Text
                                         style={[styles.email, { color: muted }]}
                                         numberOfLines={1}
                                     >
-                                        {CURRENT_USER.email}
+                                        {user.email}
                                     </Text>
                                 </View>
                             </Pressable>

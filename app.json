@@ -38,6 +38,12 @@
           "image": "./assets/image/bg/loading.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos so you can set a profile picture."
+        }
       ]
     ],
     "experiments": {

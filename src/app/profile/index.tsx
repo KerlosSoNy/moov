@@ -1,21 +1,25 @@
 import { EditableField, EditableSection } from "@/components/profile/editableSection";
 import type { Colors } from "@/constants/theme";
-import { CURRENT_USER } from "@/constants/user";
 import { useTheme } from "@/hooks/useTheme";
-import type { TranslationKey } from "@/i18n/config";
 import { useTranslation } from "@/i18n/languageProvider";
+import { useUser } from "@/providers/auth";
 import {
+    avatarUrl,
     changePassword,
     isValidEmail,
-    loadProfile,
     saveProfile,
+    toProfile,
+    uploadAvatar,
+    WrongPasswordError,
     type Profile,
 } from "@/services/profile/profile";
 import Feather from "@expo/vector-icons/Feather";
 import { Image } from "expo-image";
-import { router, type Href } from "expo-router";
+import { launchImageLibraryAsync } from "expo-image-picker";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
     Platform,
@@ -27,16 +31,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type LinkItem = {
-    label: TranslationKey;
-    icon: keyof typeof Feather.glyphMap;
-    href: Href;
-};
-
-const LINKS: LinkItem[] = [
-    { label: "favorites", icon: "heart", href: "/favorite" },
-    { label: "settings", icon: "settings", href: "/settings" },
-];
 
 const MIN_PASSWORD_LENGTH = 8;
 const EMPTY_PASSWORDS = { current: "", next: "", confirm: "" };
@@ -47,7 +41,9 @@ export default function ProfileScreen() {
     const { colors } = useTheme();
     const styles = createStyles(colors);
 
-    const [profile, setProfile] = useState<Profile>(loadProfile);
+    const user = useUser();
+    // Supabase keeps the user in sync after updates, so derive the profile from it
+    const profile = toProfile(user);
     const [draft, setDraft] = useState<Profile>(profile);
     const [editingInfo, setEditingInfo] = useState(false);
     const [savingInfo, setSavingInfo] = useState(false);
@@ -57,6 +53,29 @@ export default function ProfileScreen() {
     const [editingPassword, setEditingPassword] = useState(false);
     const [savingPassword, setSavingPassword] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
+
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+    const changeAvatar = async () => {
+        const result = await launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+        });
+        if (result.canceled) return;
+
+        setUploadingAvatar(true);
+        try {
+            await uploadAvatar(user, result.assets[0]);
+        } catch (e) {
+            console.error(e);
+            // @ts-expect-error type missing
+            Alert.alert(t("avatarFailed"));
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
 
     const startEditInfo = () => {
         setDraft(profile);
@@ -77,9 +96,11 @@ export default function ProfileScreen() {
 
         setSavingInfo(true);
         try {
-            setProfile(await saveProfile(next));
+            const { emailPending } = await saveProfile(user, next);
             setEditingInfo(false);
             setInfoError(null);
+            // @ts-expect-error type missing
+            if (emailPending) Alert.alert(t("emailChangePending"));
         } catch {
             setInfoError(t("saveFailed"));
         } finally {
@@ -110,11 +131,12 @@ export default function ProfileScreen() {
 
         setSavingPassword(true);
         try {
-            await changePassword(passwords.current, passwords.next);
+            await changePassword(profile.email, passwords.current, passwords.next);
             cancelEditPassword();
             Alert.alert(t("passwordChanged"));
-        } catch {
-            setPasswordError(t("saveFailed"));
+        } catch (e) {
+            // @ts-expect-error type missing
+            setPasswordError(t(e instanceof WrongPasswordError ? "wrongPassword" : "saveFailed"));
         } finally {
             setSavingPassword(false);
         }
@@ -148,12 +170,29 @@ export default function ProfileScreen() {
                 </Pressable>
 
                 <View style={styles.hero}>
-                    <Image
-                        source={{ uri: CURRENT_USER.avatar }}
-                        style={styles.avatar}
-                        contentFit="cover"
-                        transition={200}
-                    />
+                    <Pressable
+                        onPress={changeAvatar}
+                        disabled={uploadingAvatar}
+                        accessibilityRole="button"
+                        //@ts-expect-error type missing
+                        accessibilityLabel={t("changePhoto")}
+                        style={styles.avatarWrap}
+                    >
+                        <Image
+                            source={{ uri: avatarUrl(user) }}
+                            style={styles.avatar}
+                            contentFit="cover"
+                            transition={200}
+                        />
+                        {uploadingAvatar && (
+                            <View style={styles.avatarOverlay}>
+                                <ActivityIndicator color="#fff" />
+                            </View>
+                        )}
+                        <View style={styles.avatarBadge}>
+                            <Feather name="camera" size={15} color="#fff" />
+                        </View>
+                    </Pressable>
                     <Text style={styles.name} numberOfLines={1}>
                         {profile.name}
                     </Text>
@@ -280,12 +319,34 @@ const createStyles = (c: Colors) => StyleSheet.create({
         marginTop: 8,
         marginBottom: 24,
     },
+    avatarWrap: {
+        marginBottom: 14,
+    },
     avatar: {
         width: 104,
         height: 104,
         borderRadius: 52,
-        marginBottom: 14,
         backgroundColor: c.surfacePressed,
+    },
+    avatarOverlay: {
+        ...StyleSheet.absoluteFill,
+        borderRadius: 52,
+        backgroundColor: "rgba(0,0,0,0.45)",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    avatarBadge: {
+        position: "absolute",
+        bottom: 0,
+        end: 0,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: c.accent,
+        borderWidth: 3,
+        borderColor: c.background,
+        alignItems: "center",
+        justifyContent: "center",
     },
     name: {
         color: c.text,

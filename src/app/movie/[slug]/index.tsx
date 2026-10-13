@@ -1,3 +1,4 @@
+import FavoriteButton from '@/components/favoriteButton/favoriteButton';
 import TrailerSheet from '@/components/movie/trailerSheet';
 import { ON_IMAGE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -134,6 +135,9 @@ export default function MovieDetails() {
                 >
                     <Text style={{ color: ON_IMAGE.text, fontSize: 20 }}>‹</Text>
                 </Pressable>
+            </SafeAreaView>
+            <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, right: 16 }}>
+                <FavoriteButton movie={movie} variant="image" />
             </SafeAreaView>
         </View>
     );
