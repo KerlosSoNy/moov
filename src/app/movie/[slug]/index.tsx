@@ -1,10 +1,13 @@
 import FavoriteButton from '@/components/favoriteButton/favoriteButton';
+import MovieRow from '@/components/home/movieRow';
+import CastRow from '@/components/movie/castRow';
 import TrailerSheet from '@/components/movie/trailerSheet';
 import { ON_IMAGE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslation } from '@/i18n/languageProvider';
-import { apiRequest } from '@/lib/fetchInstance';
 import { imgUrl } from '@/lib/image';
+import { fetchMovie, fetchMoviePeople, fetchRelatedMovies } from '@/services/movie/movieDetails';
+import type { CastMember, Movie, MovieDetails as MovieDetailsData } from '@/types/movie';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,21 +20,67 @@ const fallback = require('../../../../assets/image/loading.png');
 export default function MovieDetails() {
     const { slug } = useLocalSearchParams<{ slug: string }>();
     const router = useRouter();
-    const [movie, setMovie] = useState<any>(null);
+    const [movie, setMovie] = useState<MovieDetailsData | null>(null);
     const [error, setError] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
+    const [cast, setCast] = useState<CastMember[]>([]);
+    const [directors, setDirectors] = useState<string[]>([]);
+    const [peopleLoading, setPeopleLoading] = useState(true);
+    const [related, setRelated] = useState<Movie[]>([]);
+    const [relatedLoading, setRelatedLoading] = useState(true);
     const [trailerOpen, setTrailerOpen] = useState(false);
     const { t } = useTranslation();
     const { colors } = useTheme();
-    console.log(movie)
+
     useEffect(() => {
-        apiRequest(`/movies/${slug}?extended=full,images`)
+        const controller = new AbortController();
+        fetchMovie(slug, controller.signal)
             .then(setMovie)
-            .catch(() => setError(true));
-    }, [slug]);
+            .catch(() => !controller.signal.aborted && setError(true));
+        return () => controller.abort();
+    }, [slug, reloadKey]);
+
+    // Cast and related movies are secondary: they load on their own and simply hide on failure
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchMoviePeople(slug, controller.signal)
+            .then((people) => {
+                setCast((people.cast ?? []).slice(0, 20));
+                setDirectors(
+                    (people.crew?.directing ?? [])
+                        .filter((member) => member.job === 'Director')
+                        .map((member) => member.person.name),
+                );
+            })
+            .catch(() => setCast([]))
+            .finally(() => !controller.signal.aborted && setPeopleLoading(false));
+        fetchRelatedMovies(slug, controller.signal)
+            .then(setRelated)
+            .catch(() => setRelated([]))
+            .finally(() => !controller.signal.aborted && setRelatedLoading(false));
+        return () => controller.abort();
+    }, [slug, reloadKey]);
+
+    const retry = () => {
+        setError(false);
+        setPeopleLoading(true);
+        setRelatedLoading(true);
+        setReloadKey((key) => key + 1);
+    };
+
     if (error) {
         return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ color: colors.text }}>Failed to load movie.</Text>
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+                <Text style={{ color: colors.text }}>{t('movieError')}</Text>
+                <Pressable
+                    onPress={retry}
+                    style={({ pressed }) => ({ backgroundColor: pressed ? colors.surfacePressed : colors.surface, borderRadius: 20, paddingHorizontal: 18, paddingVertical: 10 })}
+                >
+                    <Text style={{ color: colors.text, fontWeight: '600' }}>{t('retry')}</Text>
+                </Pressable>
+                <Pressable onPress={() => router.back()}>
+                    <Text style={{ color: colors.link }}>{t('back')}</Text>
+                </Pressable>
             </SafeAreaView>
         );
     }
@@ -46,7 +95,6 @@ export default function MovieDetails() {
 
     const poster = imgUrl(movie.images?.poster?.[0]);
     const backdrop = imgUrl(movie.images?.fanart?.[0]);
-    console.log(colors)
     return (
         <View style={{ flex: 1, backgroundColor: colors.background }}>
             <Stack.Screen options={{ headerShown: false }} />
@@ -74,6 +122,11 @@ export default function MovieDetails() {
                             </Text>
                         ) : (
                             <Text style={{ color: colors.textMuted, fontStyle: 'italic', marginTop: 4 }}>★ {t('noData')}</Text>
+                        )}
+                        {directors.length > 0 && (
+                            <Text numberOfLines={1} style={{ color: colors.textMuted, marginTop: 4 }}>
+                                {t('director')}: <Text style={{ color: colors.text, fontWeight: '600' }}>{directors.join(', ')}</Text>
+                            </Text>
                         )}
                     </View>
                 </View>
@@ -117,12 +170,17 @@ export default function MovieDetails() {
                     {!!movie.tagline && (
                         <Text style={{ color: colors.textMuted, fontStyle: 'italic', marginBottom: 10 }}>{movie.tagline}</Text>
                     )}
-                    <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Overview</Text>
+                    <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>{t('overview')}</Text>
                     {movie.overview ? (
                         <Text style={{ color: colors.textSecondary, lineHeight: 22 }}>{movie.overview}</Text>
                     ) : (
                         <Text style={{ color: colors.textMuted, fontStyle: 'italic' }}>{t('noData')}</Text>
                     )}
+                </View>
+
+                <View style={{ marginTop: 28 }}>
+                    <CastRow title={t('cast')} cast={cast} loading={peopleLoading} />
+                    <MovieRow title={t('relatedMovies')} movies={related} loading={relatedLoading} />
                 </View>
             </ScrollView>
 

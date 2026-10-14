@@ -61,6 +61,7 @@ function AppShell() {
             <Stack.Screen name="settings/index" />
             <Stack.Screen name="profile/index" />
             <Stack.Screen name="movie/[slug]/index" />
+            <Stack.Screen name="person/[slug]/index" />
           </Stack.Protected>
         </Stack>
         {signedIn && !recovering && !NO_TABS.includes(pathName) && <Tabs />}
