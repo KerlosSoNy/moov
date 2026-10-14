@@ -44,6 +44,13 @@
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos so you can set a profile picture."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#e05252",
+          "defaultChannel": "default"
+        }
       ]
     ],
     "experiments": {

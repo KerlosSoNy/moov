@@ -25,6 +25,18 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Moov features and backend
+
+- **Catalog:** Arabic movies and series come from [Shoof Aflam](https://shoofaflam.tv/api-docs/) (a static daily feed, cached on device). International titles come from Trakt. Search covers both. Descriptions: Trakt (English plus its Arabic translations); Shoof Aflam titles need `EXPO_PUBLIC_TMDB_API_KEY` (see `.env.example`). Both are normalized to `ContentItem` (`src/types/content.ts`).
+- **Community:** comments with replies, likes, reports and 1–5 star ratings, stored in Supabase.
+- **Push notifications:** `expo-notifications` on device, plus a daily campaign dispatcher (Supabase Cron → Edge Function).
+
+Setup, migrations, secrets and deployment: [docs/BACKEND.md](docs/BACKEND.md). Admin panel contract: [docs/ADMIN_INTEGRATION.md](docs/ADMIN_INTEGRATION.md).
+
+```bash
+npm test   # unit + database (RLS) tests, no Docker needed
+```
+
 ## Get a fresh project
 
 When you're ready, run:

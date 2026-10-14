@@ -1,19 +1,20 @@
-import MovieResultItem from "@/components/search/movieResultItem";
+import ContentResultItem from "@/components/search/contentResultItem";
 import SearchBar from "@/components/search/searchBar";
 import SearchMessage from "@/components/search/searchMessage";
 import { useSearch } from "@/hooks/useSearch";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/i18n/languageProvider";
-import type { Movie } from "@/types/movie";
-import { searchMovies } from "@/services/search/searchMovies";
+import { contentHref } from "@/lib/contentRoutes";
+import { searchAll, type SearchSection } from "@/services/search/searchAll";
+import type { ContentItem } from "@/types/content";
 import Feather from "@expo/vector-icons/Feather";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
     ActivityIndicator,
-    FlatList,
     Keyboard,
     Pressable,
+    SectionList,
     Text,
     View,
 } from "react-native";
@@ -27,23 +28,26 @@ export default function SearchScreen() {
     const router = useRouter();
     const { genre } = useLocalSearchParams<{ genre?: string }>();
     const search = useCallback(
-        (q: string, signal: AbortSignal) => searchMovies(q, signal, genre),
+        (q: string, signal: AbortSignal) => searchAll(q, signal, genre),
         [genre],
     );
-    const { query, setQuery, clear, retry, results, status } = useSearch(
+    const { query, setQuery, clear, retry, results, status } = useSearch<SearchSection>(
         search,
         { minLength: genre ? 0 : 1, scope: genre },
     );
 
     const clearGenre = () => router.setParams({ genre: undefined });
 
-    const openMovie = (movie: Movie) => {
+    const openItem = (item: ContentItem) => {
         Keyboard.dismiss();
-        router.push({
-            pathname: "/movie/[slug]",
-            params: { slug: movie.ids.slug },
-        });
+        router.push(contentHref(item));
     };
+
+    // Sections with results, plus a note for a source that failed
+    const sections = results
+        .filter((section) => section.items.length || section.failed)
+        .map((section) => ({ ...section, data: section.items }));
+    const total = results.reduce((n, section) => n + section.items.length, 0);
 
     const renderBody = () => {
         switch (status) {
@@ -65,24 +69,32 @@ export default function SearchScreen() {
                     />
                 );
             case "success":
-                if (results.length === 0) {
-                    return (
-                        <SearchMessage
-                            icon="search"
-                            message={t("searchNoResults")}
-                        />
-                    );
+                if (total === 0 && !sections.some((s) => s.failed)) {
+                    return <SearchMessage icon="search" message={t("searchNoResults")} />;
                 }
                 return (
-                    <FlatList
-                        data={results}
-                        keyExtractor={(item) => String(item.movie.ids.trakt)}
-                        renderItem={({ item }) => (
-                            <MovieResultItem
-                                movie={item.movie}
-                                onPress={openMovie}
-                            />
+                    <SectionList
+                        sections={sections}
+                        keyExtractor={(item) => item.key}
+                        renderItem={({ item }) => <ContentResultItem item={item} onPress={openItem} />}
+                        renderSectionHeader={({ section }) => (
+                            <View className="pb-1 pt-4" style={{ backgroundColor: colors.background }}>
+                                <Text className="text-lg font-bold" style={{ color: colors.text }}>
+                                    {t(section.id === "arabic" ? "searchArabicSection" : "searchInternationalSection")}
+                                    {section.items.length ? (
+                                        <Text style={{ color: colors.textMuted, fontWeight: "600" }}>  {section.items.length}</Text>
+                                    ) : null}
+                                </Text>
+                                {section.failed && (
+                                    <Pressable onPress={retry} hitSlop={6}>
+                                        <Text className="text-sm" style={{ color: colors.danger }}>
+                                            {t("searchSourceFailed")}
+                                        </Text>
+                                    </Pressable>
+                                )}
+                            </View>
                         )}
+                        stickySectionHeadersEnabled={false}
                         keyboardShouldPersistTaps="handled"
                         onScrollBeginDrag={Keyboard.dismiss}
                         contentContainerStyle={{

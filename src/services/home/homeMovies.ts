@@ -1,30 +1,21 @@
 import { apiRequest } from "@/lib/fetchInstance";
 import type { Movie } from "@/types/movie";
 
-export type HomeMovies = {
-    trending: Movie[];
-    popular: Movie[];
-    boxOffice: Movie[];
-    comingSoon: Movie[];
-};
+export type HomeMovieList = "trending" | "boxOffice" | "comingSoon";
 
 const EXT = "extended=full,images";
 
-// Trending, box office and anticipated wrap each movie as { movie }; popular returns movies directly
-const unwrap = (items: { movie: Movie }[]) => items.map((item) => item.movie);
+// Each list wraps every movie as { movie }
+const ENDPOINTS: Record<HomeMovieList, string> = {
+    trending: `/movies/trending?${EXT}&limit=10`,
+    boxOffice: `/movies/boxoffice?${EXT}`,
+    comingSoon: `/movies/anticipated?${EXT}&limit=15`,
+};
 
-export async function fetchHomeMovies(signal?: AbortSignal): Promise<HomeMovies> {
-    const [trending, popular, boxOffice, comingSoon] = await Promise.all([
-        apiRequest<{ movie: Movie }[]>(`/movies/trending?${EXT}&limit=10`, { signal }),
-        apiRequest<Movie[]>(`/movies/popular?${EXT}&limit=15`, { signal }),
-        apiRequest<{ movie: Movie }[]>(`/movies/boxoffice?${EXT}`, { signal }),
-        apiRequest<{ movie: Movie }[]>(`/movies/anticipated?${EXT}&limit=15`, { signal }),
-    ]);
-
-    return {
-        trending: unwrap(trending),
-        popular,
-        boxOffice: unwrap(boxOffice),
-        comingSoon: unwrap(comingSoon),
-    };
+// One list per call so a failing list only hides its own row
+export async function fetchHomeMovieList(list: HomeMovieList, signal?: AbortSignal): Promise<Movie[]> {
+    const items = await apiRequest<{ movie?: Movie }[]>(ENDPOINTS[list], { signal });
+    return Array.isArray(items)
+        ? items.map((item) => item.movie).filter((movie): movie is Movie => !!movie?.ids?.trakt)
+        : [];
 }

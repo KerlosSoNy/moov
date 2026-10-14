@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { unregisterDevice } from "@/services/notifications/pushNotifications";
+import { clearAllReminders } from "@/services/schedule/schedule";
 import type { User } from "@supabase/supabase-js";
 import { createURL, useLinkingURL } from "expo-linking";
 import { createContext, use, useEffect, useState, type ReactNode } from "react";
@@ -86,6 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const signOut = async () => {
+        // Stop pushes to this device for this account while the session can still authorize it;
+        // capped so an offline sign out isn't held up
+        await Promise.race([unregisterDevice(), new Promise((resolve) => setTimeout(resolve, 3000))]);
+        // Watch reminders on this device belong to this account
+        await clearAllReminders().catch(() => {});
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
     };

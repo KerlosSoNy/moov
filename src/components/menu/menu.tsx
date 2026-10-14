@@ -48,6 +48,7 @@ const go = (href: Href) => () => router.push(href);
 
 const ITEMS: MenuItem[] = [
     { label: "profile", icon: "user", onPress: go("/profile") },
+    { label: "schedule", icon: "calendar", onPress: go("/schedule") },
     { label: "settings", icon: "settings", onPress: go("/settings") },
 ];
 

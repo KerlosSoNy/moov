@@ -1,3 +1,7 @@
+import CommentsSection from '@/components/comments/commentsSection';
+import CommunityRating from '@/components/community/communityRating';
+import OverviewSection from '@/components/content/overviewSection';
+import ScheduleButton from '@/components/schedule/scheduleButton';
 import FavoriteButton from '@/components/favoriteButton/favoriteButton';
 import MovieRow from '@/components/home/movieRow';
 import CastRow from '@/components/movie/castRow';
@@ -6,19 +10,22 @@ import { ON_IMAGE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslation } from '@/i18n/languageProvider';
 import { imgUrl } from '@/lib/image';
+import { normalizeTraktTitle } from '@/services/content/normalize';
 import { fetchMovie, fetchMoviePeople, fetchRelatedMovies } from '@/services/movie/movieDetails';
 import type { CastMember, Movie, MovieDetails as MovieDetailsData } from '@/types/movie';
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const fallback = require('../../../../assets/image/loading.png');
 
 export default function MovieDetails() {
-    const { slug } = useLocalSearchParams<{ slug: string }>();
+    const { slug, focus } = useLocalSearchParams<{ slug: string; focus?: string }>();
+    const scroll = useRef<ScrollView>(null);
+    const scrolledToComments = useRef(false);
     const router = useRouter();
     const [movie, setMovie] = useState<MovieDetailsData | null>(null);
     const [error, setError] = useState(false);
@@ -29,7 +36,7 @@ export default function MovieDetails() {
     const [related, setRelated] = useState<Movie[]>([]);
     const [relatedLoading, setRelatedLoading] = useState(true);
     const [trailerOpen, setTrailerOpen] = useState(false);
-    const { t } = useTranslation();
+    const { t } :any= useTranslation();
     const { colors } = useTheme();
 
     useEffect(() => {
@@ -93,12 +100,17 @@ export default function MovieDetails() {
         );
     }
 
+    // Comments and ratings key Trakt movies by their numeric id, which stays stable if the slug changes
+    const communityRef = { provider: 'trakt', type: 'movie', id: String(movie.ids.trakt) } as const;
+    // The movie as a ContentItem: English overview comes with it, Arabic is
+    // loaded from Trakt translations; also what the schedule stores
+    const overviewItem = normalizeTraktTitle(movie, 'movie');
     const poster = imgUrl(movie.images?.poster?.[0]);
     const backdrop = imgUrl(movie.images?.fanart?.[0]);
     return (
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <Stack.Screen options={{ headerShown: false }} />
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+            <ScrollView ref={scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
                 <View style={{ height: 400, backgroundColor: colors.background }}>
                     {backdrop && <Image source={{ uri: backdrop }} style={{ width: '100%', height: '100%' }} contentFit="cover" />}
                     <View style={{ experimental_backgroundImage: `linear-gradient(to top, ${colors.background} 30%, rgba(${colors.backgroundRgb}, 0))`, position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, }} />
@@ -118,7 +130,7 @@ export default function MovieDetails() {
                         </Text>
                         {typeof movie.rating === 'number' ? (
                             <Text style={{ color: colors.rating, fontWeight: '700', marginTop: 4 }}>
-                                ★ {movie.rating.toFixed(1)} <Text style={{ color: colors.textMuted, fontWeight: '400' }}>({movie.votes ?? 0} {t('votes').toLowerCase()})</Text>
+                                ★ {movie.rating.toFixed(1)} <Text style={{ color: colors.textMuted, fontWeight: '400' }}>({t('traktRating')} · {movie.votes ?? 0} {t('votes').toLowerCase()})</Text>
                             </Text>
                         ) : (
                             <Text style={{ color: colors.textMuted, fontStyle: 'italic', marginTop: 4 }}>★ {t('noData')}</Text>
@@ -153,6 +165,11 @@ export default function MovieDetails() {
                             {movie.trailer ? t('watchTrailer') : t('details')}
                         </Text>
                     </Pressable>
+                    {overviewItem && (
+                        <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                            <ScheduleButton item={overviewItem} />
+                        </View>
+                    )}
                     {!!movie.genres?.length && (
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                             {movie.genres.map((g: string) => (
@@ -170,17 +187,30 @@ export default function MovieDetails() {
                     {!!movie.tagline && (
                         <Text style={{ color: colors.textMuted, fontStyle: 'italic', marginBottom: 10 }}>{movie.tagline}</Text>
                     )}
-                    <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>{t('overview')}</Text>
-                    {movie.overview ? (
-                        <Text style={{ color: colors.textSecondary, lineHeight: 22 }}>{movie.overview}</Text>
-                    ) : (
-                        <Text style={{ color: colors.textMuted, fontStyle: 'italic' }}>{t('noData')}</Text>
-                    )}
+                    {overviewItem && <OverviewSection item={overviewItem} />}
+                </View>
+
+                <View style={{ marginTop: 24 }}>
+                    <CommunityRating content={communityRef} />
                 </View>
 
                 <View style={{ marginTop: 28 }}>
                     <CastRow title={t('cast')} cast={cast} loading={peopleLoading} />
                     <MovieRow title={t('relatedMovies')} movies={related} loading={relatedLoading} />
+                </View>
+
+                <View
+                    style={{ marginTop: 8 }}
+                    onLayout={(e) => {
+                        // Notification deep links ask to open straight at the comments
+                        if (focus === 'comments' && !scrolledToComments.current) {
+                            scrolledToComments.current = true;
+                            const y = e.nativeEvent.layout.y;
+                            requestAnimationFrame(() => scroll.current?.scrollTo({ y, animated: true }));
+                        }
+                    }}
+                >
+                    <CommentsSection content={communityRef} />
                 </View>
             </ScrollView>
 
@@ -197,6 +227,6 @@ export default function MovieDetails() {
             <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, right: 16 }}>
                 <FavoriteButton movie={movie} variant="image" />
             </SafeAreaView>
-        </View>
+        </KeyboardAvoidingView>
     );
 }

@@ -3,6 +3,8 @@ import { useTheme } from "@/hooks/useTheme";
 import { LanguageProvider, useTranslation } from "@/i18n/languageProvider";
 import { AuthProvider, useAuth } from "@/providers/auth";
 import { FavoritesProvider } from "@/providers/favorites";
+import { NotificationsProvider } from "@/providers/notifications";
+import { ScheduleProvider } from "@/providers/schedule";
 import { PreferencesProvider } from "@/providers/preferences";
 import { LocaleProvider, Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -18,7 +20,11 @@ export default function RootLayout() {
       <PreferencesProvider>
         <AuthProvider>
           <FavoritesProvider>
-            <AppShell />
+            <NotificationsProvider>
+              <ScheduleProvider>
+                <AppShell />
+              </ScheduleProvider>
+            </NotificationsProvider>
           </FavoritesProvider>
         </AuthProvider>
       </PreferencesProvider>
@@ -62,6 +68,9 @@ function AppShell() {
             <Stack.Screen name="profile/index" />
             <Stack.Screen name="movie/[slug]/index" />
             <Stack.Screen name="person/[slug]/index" />
+            <Stack.Screen name="browse/[category]/index" />
+            <Stack.Screen name="content/[provider]/[type]/[id]/index" />
+            <Stack.Screen name="schedule/index" />
           </Stack.Protected>
         </Stack>
         {signedIn && !recovering && !NO_TABS.includes(pathName) && <Tabs />}
