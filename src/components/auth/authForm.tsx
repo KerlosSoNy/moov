@@ -20,7 +20,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const logo = require("../../../assets/image/bg/loading.png");
+const logo = require("../../../assets/image/logos/3.png");
 
 type AuthScreenProps = {
     title: string;
@@ -47,7 +47,7 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
                 ]}
             >
                 <Image source={logo} style={styles.logo} contentFit="contain" />
-                <Text style={styles.title}>{title}</Text>
+                <Text className='-mt-4' style={styles.title}>{title}</Text>
                 <Text style={styles.subtitle}>{subtitle}</Text>
                 {children}
             </ScrollView>

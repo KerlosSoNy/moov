@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "moov",
+    "name": "Moov",
     "slug": "moov",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/image/bg/loading.png",
+    "icon": "./assets/image/logos/3.png",
     "scheme": "moov",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/image/logos/3.png",
       "bundleIdentifier": "com.zoniix.moov",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -17,9 +17,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#f1f0ef",
-        "foregroundImage": "./assets/image/bg/loading.png",
-        "backgroundImage": "./assets/image/bg/loading.png",
-        "monochromeImage": "./assets/image/bg/loading.png"
+        "foregroundImage": "./assets/image/logos/3.png",
+        "backgroundImage": "./assets/image/logos/3.png",
+        "monochromeImage": "./assets/image/logos/3.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.zoniix.moov"
@@ -27,7 +27,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/image/bg/loading.png"
+      "favicon": "./assets/image/logos/3.png"
     },
     "plugins": [
       "expo-router",
@@ -35,7 +35,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#f1f0ef",
-          "image": "./assets/image/bg/loading.png",
+          "image": "./assets/image/logos/3.png",
           "imageWidth": 76
         }
       ],
