@@ -12,8 +12,11 @@ export function loadLanguage(): Language {
     }
 }
 
+// Synchronous so the value is on disk before the app reloads
 export function saveLanguage(language: Language) {
-    Storage.setItem(KEY, language).catch((error) =>
-        console.warn("Failed to save language", error),
-    );
+    try {
+        Storage.setItemSync(KEY, language);
+    } catch (error) {
+        console.warn("Failed to save language", error);
+    }
 }

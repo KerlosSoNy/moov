@@ -1,3 +1,4 @@
+import { reloadAppAsync } from "expo";
 import { createContext, use, useState, type ReactNode } from "react";
 import {
     LOCALES,
@@ -20,9 +21,12 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 export function LanguageProvider({ children }: { children: ReactNode }) {
     const [language, setLanguageState] = useState<Language>(loadLanguage);
 
+    // Restart the app instead of re-rendering the whole tree in place: switching
+    // direction (LTR <-> RTL) live is janky, a fresh launch picks it up cleanly
     const setLanguage = (next: Language) => {
-        setLanguageState(next);
+        if (next === language) return;
         saveLanguage(next);
+        reloadAppAsync("Language changed").catch(() => setLanguageState(next));
     };
 
     const { direction, translations } = LOCALES[language];
