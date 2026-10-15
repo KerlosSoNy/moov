@@ -37,7 +37,7 @@ type FilmographyProps = {
 
 export default function Filmography({ filmography, initialDepartment }: FilmographyProps) {
     const router = useRouter();
-    const { t } :any= useTranslation();
+    const { t, direction }: any = useTranslation();
     const { colors } = useTheme();
     const styles = createStyles(colors);
 
@@ -61,6 +61,7 @@ export default function Filmography({ filmography, initialDepartment }: Filmogra
 
             {departments.length > 1 && (
                 <ScrollView
+                    key={direction}
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.tabs}

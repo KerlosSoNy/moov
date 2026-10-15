@@ -131,9 +131,10 @@ type ChipsProps<T extends string> = {
 };
 
 function Chips<T extends string>({ options, value, onChange, allLabel, colors }: ChipsProps<T>) {
+    const { direction } = useTranslation();
     const all = allLabel ? [{ value: null, label: allLabel }, ...options] : options;
     return (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
+        <ScrollView key={direction} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
             {all.map((option) => {
                 const selected = option.value === value;
                 return (

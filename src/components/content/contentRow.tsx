@@ -18,7 +18,7 @@ const SKELETON_COUNT = 4;
 
 export default function ContentRow({ title, items, status, onRetry, onSeeAll }: ContentRowProps) {
     const { colors } = useTheme();
-    const { t, isRTL } = useTranslation();
+    const { t, isRTL, direction } = useTranslation();
     const styles = createStyles(colors);
     const loading = status === 'loading' && !items;
 
@@ -61,6 +61,8 @@ export default function ContentRow({ title, items, status, onRetry, onSeeAll }: 
                 </View>
             ) : (
                 <FlatList
+                    // Android only aligns RTL scrolling on mount, so remount when the direction flips
+                    key={direction}
                     horizontal
                     data={items}
                     keyExtractor={(item) => item.key}

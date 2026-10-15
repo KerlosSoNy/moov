@@ -1,5 +1,6 @@
 import type { Colors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslation } from '@/i18n/languageProvider';
 import { imgUrl } from '@/lib/image';
 import type { CastMember } from '@/types/movie';
 import Feather from '@expo/vector-icons/Feather';
@@ -19,6 +20,7 @@ const AVATAR = 76;
 export default function CastRow({ title, cast, loading }: CastRowProps) {
     const router = useRouter();
     const { colors } = useTheme();
+    const { direction } = useTranslation();
     const styles = createStyles(colors);
 
     if (!loading && cast.length === 0) return null;
@@ -37,6 +39,7 @@ export default function CastRow({ title, cast, loading }: CastRowProps) {
                 </View>
             ) : (
                 <FlatList
+                    key={direction}
                     horizontal
                     data={cast}
 

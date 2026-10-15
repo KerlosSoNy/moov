@@ -1,6 +1,7 @@
 import MovieCard from '@/components/MovieCard/MovieCard';
 import type { Colors } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslation } from '@/i18n/languageProvider';
 import type { Movie } from '@/types/movie';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
@@ -16,6 +17,7 @@ const SKELETON_COUNT = 4;
 
 export default function MovieRow({ title, movies, loading, ranked }: MovieRowProps) {
     const { colors } = useTheme();
+    const { direction } = useTranslation();
     const styles = createStyles(colors);
 
     if (!loading && movies.length === 0) return null;
@@ -35,6 +37,7 @@ export default function MovieRow({ title, movies, loading, ranked }: MovieRowPro
                 </View>
             ) : (
                 <FlatList
+                    key={direction}
                     horizontal
                     data={movies}
                     keyExtractor={(movie) => String(movie.ids.trakt)}

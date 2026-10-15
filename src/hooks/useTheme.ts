@@ -1,8 +1,8 @@
 import { COLORS, type ColorScheme } from "@/constants/theme";
-import { useColorScheme } from "react-native";
+import { useColorSchemePreference } from "@/providers/preferences";
 
-// Follows Appearance, which PreferencesProvider overrides when the user picks a theme
+// The user's theme pick, or the system scheme when they chose "system"
 export function useTheme() {
-    const scheme: ColorScheme = useColorScheme() === "light" ? "light" : "dark";
+    const scheme: ColorScheme = useColorSchemePreference();
     return { scheme, dark: scheme === "dark", colors: COLORS[scheme] };
 }

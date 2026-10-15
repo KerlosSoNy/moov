@@ -29,6 +29,19 @@ const withTime = (base: Date, time: Date) => {
     return next;
 };
 
+// Earliest allowed slot: at least a minute ahead, rounded up to the next 5 minutes
+const earliestSlot = () => {
+    const next = new Date(Date.now() + 60_000);
+    next.setSeconds(0, 0);
+    next.setMinutes(Math.ceil(next.getMinutes() / 5) * 5);
+    return next;
+};
+// Android's time dialog has no minimum, so past picks snap forward
+const notBeforeNow = (date: Date) => {
+    const min = earliestSlot();
+    return date.getTime() < min.getTime() ? min : date;
+};
+
 // Mount only while open: each opening starts from the saved entry (or a default)
 export default function ScheduleSheet({ item, onClose }: ScheduleSheetProps) {
     const { t, language } = useTranslation();
@@ -101,6 +114,7 @@ export default function ScheduleSheet({ item, onClose }: ScheduleSheetProps) {
         }
     };
 
+    const minimumDate = new Date(openedAt + 60_000);
     const today = new Date(openedAt);
     today.setHours(0, 0, 0, 0);
 
@@ -127,12 +141,12 @@ export default function ScheduleSheet({ item, onClose }: ScheduleSheetProps) {
                                     value={at}
                                     mode="datetime"
                                     display="compact"
-                                    minimumDate={today}
+                                    minimumDate={minimumDate}
                                     accentColor={colors.accent}
                                     themeVariant={scheme}
                                     locale={language === 'ar' ? 'ar_EG' : 'en_US'}
                                     onValueChange={(_, date) => {
-                                        setAt(date);
+                                        setAt(notBeforeNow(date));
                                         setPastAtSave(false);
                                     }}
                                     style={{ flex: 1 }}
@@ -151,7 +165,7 @@ export default function ScheduleSheet({ item, onClose }: ScheduleSheetProps) {
                                         minimumDate={androidPicker === 'date' ? today : undefined}
                                         accentColor={colors.accent}
                                         onValueChange={(_, date) => {
-                                            setAt((current) => (androidPicker === 'date' ? withDay(current, date) : withTime(current, date)));
+                                            setAt((current) => notBeforeNow(androidPicker === 'date' ? withDay(current, date) : withTime(current, date)));
                                             setPastAtSave(false);
                                             setAndroidPicker(null);
                                         }}
