@@ -8,11 +8,13 @@
       "developmentClient": true,
       "distribution": "internal"
     },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "preview": {
       "distribution": "internal"
-    },
-    "production": {
-      "autoIncrement": true
     }
   },
   "submit": {
